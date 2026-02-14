@@ -1,0 +1,19 @@
+Kavach Adaptive Risk Engine/
+|
+|-- app.py                   # Flask app entry + auth routes
+|-- market_data.py           # yfinance data ingestion
+|-- models.py                # DB models (User, Asset, MarketState, KavachLog)
+|-- requirements.txt         # Dependencies
+|
+|-- instance/
+|   |-- kare.db
+|
+|-- __pycache__/
+|   |-- market_data.cpython-313.pyc
+|   |-- models.cpython-313.pyc
+|
+|-- ZPhases/
+|   |-- Phase1/
+|   |-- Phase 2/
+|
+|-- venv/                    # (very large, excluded from listing)
