@@ -14,6 +14,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     dummy_balance = db.Column(db.Float, nullable=False, default=100000.0)
+    deployed = db.Column(db.Boolean, nullable=False, default=False)
+    last_regime = db.Column(db.String(16), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     # Relationships: Links the user to their holdings and logs.

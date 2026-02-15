@@ -1,0 +1,51 @@
+REBALANCING TECHNIQUE 
+
+1) Where does cash live?
+Option A (recommended): Cash is an Asset row (symbol=USD, asset_type=cash)
+Option B: Cash only in User.dummy_balance
+
+Default: Option A (clean for portfolio breakdown + charts)
+
+2) What happens on crash (Level 3)?
+Option A: Sell all risky + safe → 100% cash
+Option B: Sell only risky → keep safe
+Option C: Sell risky + reduce safe (partial cash)
+
+Default: Option A (matches “total collapse” rule)
+
+3) If safe asset doesn’t exist yet?
+Option A: Create new Asset row for safe asset
+Option B: Keep everything in cash only
+
+Default: Option B in Level 3, Option A in Level 2
+
+4) Do we rebalance by value or by quantity?
+Option A: Value-based (sell $ amount to reach target weights)
+Option B: Quantity-based (sell entire risky assets)
+
+Default: Option A (more realistic)
+
+5) Should we keep a “USD” asset even if zero?
+Option A: Yes (always keep cash row for UX)
+Option B: Only if balance > 0
+
+Default: Option A
+
+6) Log behavior
+Option A: Log every rebalance action
+Option B: Log only when regime changes
+
+Default: Option A
+
+If these defaults are OK, we’ll implement exactly this later.
+If you want changes, tell me the choices for 1–6 in your words.
+
+GPT-5.2-Codex • 0.9x
+option a, 2) level 2 crash - sell risky but buy safe ; level 3 crash - option a 3) Option B in Level 3, Option A in Level 2 , 4) option a , 5) option a, 6) option a
+
+
+
+
+
+
+prices?tickers=BTC-USD,ETH-USD,GLD,TLT
