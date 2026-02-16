@@ -1,6 +1,8 @@
 from datetime import datetime
+import logging
 from flask import Flask, jsonify, redirect, request, url_for
 from flask_login import LoginManager, current_user, login_required, login_user, logout_user
+from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from market_data import fetch_latest_prices, parse_tickers
@@ -9,11 +11,22 @@ from rebalancer import deploy_capital, rebalance_portfolio
 from models import Asset, KavachLog, MarketState, User, db
 
 
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
 def create_app():
     app = Flask(__name__)
     app.config["SECRET_KEY"] = "change-me"
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///kare.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    # Enable CORS for frontend communication
+    CORS(app, resources={r"/*": {"origins": "http://localhost:5173", "supports_credentials": True}})
 
     db.init_app(app)
 
@@ -98,12 +111,15 @@ def create_app():
     def regime():
         risky = request.args.get("risky") or None
         safe = request.args.get("safe") or None
+        logger.info(f"Detecting regime for user {current_user.username}")
         result = detect_regime(risky_ticker=risky or "BTC-USD", safe_ticker=safe or "GLD")
+        logger.info(f"Regime detection result: Level {result['level']} ({result['regime']}), detected_by: {result.get('detected_by')}")
 
         rebalance_result = None
         if current_user.deployed:
             last_regime = current_user.last_regime
             if last_regime and last_regime != result["regime"]:
+                logger.info(f"Regime changed from {last_regime} to {result['regime']} - triggering rebalance")
                 rebalance_result, _ = rebalance_portfolio(current_user, result["regime"])
         current_user.last_regime = result["regime"]
 

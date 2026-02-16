@@ -1,10 +1,14 @@
 from datetime import datetime
 import io
+import time
+import logging
 
 import pandas as pd
 import requests
 import yfinance as yf
 
+# Configure logging
+logger = logging.getLogger(__name__)
 
 RISKY_TICKER = "BTC-USD"
 SAFE_TICKER = "GLD"
@@ -20,6 +24,29 @@ CRYPTO_SYMBOLS = {"BTC-USD", "ETH-USD"}
 STOOQ_MAP = {"GLD": "GLD.US", "TLT": "TLT.US"}
 COINGECKO_MAP = {"BTC-USD": "bitcoin", "ETH-USD": "ethereum"}
 
+# Retry configuration
+MAX_RETRIES = 3
+RETRY_DELAY = 1.0  # seconds
+RETRY_BACKOFF = 1.5  # exponential backoff multiplier
+
+
+def _retry_request(func, ticker, *args, **kwargs):
+    """Retry a function call with exponential backoff."""
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            result = func(ticker, *args, **kwargs)
+            return result
+        except Exception as exc:
+            last_error = exc
+            if attempt < MAX_RETRIES:
+                wait_time = RETRY_DELAY * (RETRY_BACKOFF ** (attempt - 1))
+                logger.debug(f"Retry {attempt}/{MAX_RETRIES} for {ticker} after {wait_time}s: {str(exc)}")
+                time.sleep(wait_time)
+            else:
+                logger.debug(f"All retries exhausted for {ticker}: {str(exc)}")
+    return None
+
 
 def _history_yfinance(ticker, period="220d"):
     try:
@@ -31,17 +58,23 @@ def _history_yfinance(ticker, period="220d"):
         if series.empty:
             return None, "No price data in yfinance response"
 
+        logger.debug(f"yfinance SUCCESS for {ticker}: {len(series)} days")
         return series, None
     except Exception as exc:
-        return None, f"yfinance error: {str(exc)}"
+        error_msg = f"yfinance error: {str(exc)}"
+        logger.warning(f"Failed to get ticker '{ticker}' from yfinance: {error_msg}")
+        return None, error_msg
 
 
 def _history_stooq(ticker):
     try:
         stooq_symbol = STOOQ_MAP.get(ticker, ticker)
         url = f"https://stooq.com/q/l/?s={stooq_symbol}&f=sd2t2ohlcv&h&e=csv"
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=10)  # Increased timeout
         response.raise_for_status()
+
+        if not response.text or len(response.text.strip()) == 0:
+            return None, "Empty response from Stooq"
 
         data = pd.read_csv(io.StringIO(response.text))
         if "Date" not in data.columns:
@@ -59,9 +92,12 @@ def _history_stooq(ticker):
         if series.empty:
             return None, "No price data in Stooq response"
 
+        logger.debug(f"Stooq SUCCESS for {ticker}: {len(series)} days")
         return series, None
     except Exception as exc:
-        return None, f"Stooq error: {str(exc)}"
+        error_msg = f"Stooq error: {str(exc)}"
+        logger.warning(f"Failed to get ticker '{ticker}' from Stooq: {error_msg}")
+        return None, error_msg
 
 
 def _history_coingecko(ticker, days=220):
@@ -74,7 +110,7 @@ def _history_coingecko(ticker, days=220):
             "https://api.coingecko.com/api/v3/coins/"
             f"{coin_id}/market_chart?vs_currency=usd&days={days}"
         )
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=10)  # Increased timeout
         response.raise_for_status()
 
         data = response.json()
@@ -91,35 +127,49 @@ def _history_coingecko(ticker, days=220):
         if series.empty:
             return None, "No price data in CoinGecko response"
 
+        logger.debug(f"CoinGecko SUCCESS for {ticker}: {len(series)} days")
         return series, None
     except Exception as exc:
-        return None, f"CoinGecko error: {str(exc)}"
+        error_msg = f"CoinGecko error: {str(exc)}"
+        logger.warning(f"Failed to get ticker '{ticker}' from CoinGecko: {error_msg}")
+        return None, error_msg
 
 
 def _fetch_history(ticker):
+    """Fetch history with retry logic and multiple fallback providers."""
     error_log = []
+    logger.info(f"Fetching history for {ticker}")
 
     if ticker in CRYPTO_SYMBOLS:
-        series, err = _history_yfinance(ticker)
+        # Try yfinance with retries
+        series, err = _retry_request(_history_yfinance, ticker)
         if series is not None:
+            logger.info(f"Successfully fetched {ticker} from yfinance (with retries)")
             return series, None
-        error_log.append(err)
+        error_log.append(err or "yfinance: unknown error")
 
-        series, err = _history_coingecko(ticker)
+        # Try CoinGecko with retries
+        series, err = _retry_request(_history_coingecko, ticker)
         if series is not None:
+            logger.info(f"Successfully fetched {ticker} from CoinGecko (with retries)")
             return series, None
-        error_log.append(err)
+        error_log.append(err or "CoinGecko: unknown error")
     else:
-        series, err = _history_yfinance(ticker)
+        # Try yfinance with retries
+        series, err = _retry_request(_history_yfinance, ticker)
         if series is not None:
+            logger.info(f"Successfully fetched {ticker} from yfinance (with retries)")
             return series, None
-        error_log.append(err)
+        error_log.append(err or "yfinance: unknown error")
 
-        series, err = _history_stooq(ticker)
+        # Try Stooq with retries
+        series, err = _retry_request(_history_stooq, ticker)
         if series is not None:
+            logger.info(f"Successfully fetched {ticker} from Stooq (with retries)")
             return series, None
-        error_log.append(err)
+        error_log.append(err or "Stooq: unknown error")
 
+    logger.error(f"All providers failed for {ticker}. Errors: {' | '.join(error_log)}")
     return None, " | ".join(error_log)
 
 

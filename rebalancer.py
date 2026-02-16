@@ -104,6 +104,12 @@ def deploy_capital(user, regime, portfolio_value_before=None):
         prices.get(symbol, 1.0) * quantity for symbol, quantity in allocation.items()
     )
     
+    # Calculate allocation in dollar values for frontend display
+    allocation_values = {
+        symbol: round(prices.get(symbol, 1.0) * quantity, 2) 
+        for symbol, quantity in allocation.items()
+    }
+    
     log = KavachLog(
         user_id=user.id,
         action_taken="capital_deployment",
@@ -117,7 +123,7 @@ def deploy_capital(user, regime, portfolio_value_before=None):
     return {
         "message": "Capital deployed successfully",
         "regime": regime,
-        "allocation": {k: round(v, 4) for k, v in allocation.items()},
+        "allocation": allocation_values,
         "portfolio_value": round(portfolio_value_after, 2),
     }, 201
 
@@ -175,6 +181,12 @@ def rebalance_portfolio(user, regime):
         prices.get(symbol, 1.0) * quantity for symbol, quantity in allocation.items()
     )
     
+    # Calculate allocation in dollar values for frontend display
+    allocation_values = {
+        symbol: round(prices.get(symbol, 1.0) * quantity, 2)
+        for symbol, quantity in allocation.items()
+    }
+    
     log = KavachLog(
         user_id=user.id,
         action_taken="rebalance",
@@ -188,6 +200,6 @@ def rebalance_portfolio(user, regime):
     return {
         "message": "Portfolio rebalanced successfully",
         "regime": regime,
-        "allocation": {k: round(v, 4) for k, v in allocation.items()},
+        "allocation": allocation_values,
         "portfolio_value": round(portfolio_value_after, 2),
     }, 200
