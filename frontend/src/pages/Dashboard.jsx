@@ -247,19 +247,28 @@ export default function Dashboard({ onLogout }) {
               </div>
               <div className="allocation-summary card">
                 <h3>Rebalance Summary</h3>
-                <p className="summary-source">{allocationSummary.source}</p>
-                <div className="summary-row">
-                  <span>Risky</span>
-                  <span>{allocationSummary.risky}%</span>
-                </div>
-                <div className="summary-row">
-                  <span>Safe</span>
-                  <span>{allocationSummary.safe}%</span>
-                </div>
-                <div className="summary-row">
-                  <span>Cash</span>
-                  <span>{allocationSummary.cash}%</span>
-                </div>
+                {!regime ? (
+                  <div className="loading-state">
+                    <div className="spinner-small"></div>
+                    <p>Loading regime data...</p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="summary-source">{allocationSummary.source}</p>
+                    <div className="summary-row">
+                      <span>Risky</span>
+                      <span>{allocationSummary.risky}%</span>
+                    </div>
+                    <div className="summary-row">
+                      <span>Safe</span>
+                      <span>{allocationSummary.safe}%</span>
+                    </div>
+                    <div className="summary-row">
+                      <span>Cash</span>
+                      <span>{allocationSummary.cash}%</span>
+                    </div>
+                  </>
+                )}
               </div>
             </>
           ) : (

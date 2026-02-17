@@ -54,7 +54,7 @@ def calculate_allocation(regime, total_value, prices):
     
     return allocation
 
-
+# main functions for deployment and rebalancing
 def deploy_capital(user, regime, portfolio_value_before=None):
     """
     Deploy user's capital based on current regime.
