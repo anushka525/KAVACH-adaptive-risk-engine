@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 from datetime import datetime
 import logging
 from flask import Flask, jsonify, redirect, request, url_for
