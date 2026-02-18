@@ -9,4 +9,4 @@
   status = 200
 
 [context.production.environment]
-  VITE_API_URL = "https://your-render-backend-url.onrender.com"
+  VITE_API_URL = "https://kavach-backend-vo3r.onrender.com"
