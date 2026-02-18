@@ -43,6 +43,10 @@ def create_app():
     def load_user(user_id):
         return db.session.get(User, int(user_id))
 
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        return jsonify({"error": "unauthorized"}), 401
+
     @app.route("/register", methods=["POST"])
     def register():
         data = request.get_json(silent=True) or {}
