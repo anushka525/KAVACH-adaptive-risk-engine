@@ -29,6 +29,11 @@ def create_app():
     app.config["SECRET_KEY"] = "change-me"
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///kare.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    
+    # Session cookie settings for cross-origin authentication
+    app.config["SESSION_COOKIE_SECURE"] = True  # Required for HTTPS
+    app.config["SESSION_COOKIE_HTTPONLY"] = True  # Security
+    app.config["SESSION_COOKIE_SAMESITE"] = "None"  # Allow cross-origin cookies
 
     # Enable CORS for frontend communication
     CORS(app, resources={r"/*": {"origins": ["https://kavach-adaptive-risk-engine.netlify.app", "http://localhost:5173"], "supports_credentials": True}})
