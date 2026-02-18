@@ -7,6 +7,8 @@ import Signup from './pages/Signup'
 import Dashboard from './pages/Dashboard'
 import './App.css'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -15,7 +17,7 @@ function App() {
     // Check if user is already logged in
     const checkAuth = async () => {
       try {
-        const response = await fetch('http://localhost:5000/me', {
+        const response = await fetch(`${API_BASE}/me`, {
           credentials: 'include'
         })
         if (response.ok) {

@@ -4,6 +4,8 @@ import { toastService } from '../utils/toastService'
 import RegimeIndicator from '../components/RegimeIndicator'
 import './Dashboard.css'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 const ALLOCATION_RULES = {
   bull: { risky: 80, safe: 15, cash: 5 },
   volatile: { risky: 40, safe: 50, cash: 10 },
@@ -27,7 +29,7 @@ export default function Dashboard({ onLogout }) {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch('http://localhost:5000/me', {
+      const response = await fetch(`${API_BASE}/me`, {
         credentials: 'include'
       })
       if (!response.ok) throw new Error('Unauthorized')
@@ -52,7 +54,7 @@ export default function Dashboard({ onLogout }) {
   const fetchRegime = async () => {
     try {
       toastService.info('📊 Checking market regime...')
-      const response = await fetch('http://localhost:5000/regime', {
+      const response = await fetch(`${API_BASE}/regime`, {
         credentials: 'include'
       })
       const regimeData = await response.json()
@@ -75,7 +77,7 @@ export default function Dashboard({ onLogout }) {
     const toastId = toastService.loading('🚀 Deploying capital...')
     setError('')
     try {
-      const response = await fetch('http://localhost:5000/deploy', {
+      const response = await fetch(`${API_BASE}/deploy`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -118,7 +120,7 @@ export default function Dashboard({ onLogout }) {
     const toastId = toastService.loading('⚡ Running stress test (simulating crash)...')
     setError('')
     try {
-      const response = await fetch('http://localhost:5000/stress-test', {
+      const response = await fetch(`${API_BASE}/stress-test`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -159,7 +161,7 @@ export default function Dashboard({ onLogout }) {
 
   const handleLogout = async () => {
     try {
-      await fetch('http://localhost:5000/logout', {
+      await fetch(`${API_BASE}/logout`, {
         method: 'POST',
         credentials: 'include'
       })

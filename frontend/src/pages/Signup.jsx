@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { toastService } from '../utils/toastService'
 import './Auth.css'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export default function Signup({ onSignup }) {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -25,7 +27,7 @@ export default function Signup({ onSignup }) {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/register', {
+      const response = await fetch(`${API_BASE}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -34,7 +36,7 @@ export default function Signup({ onSignup }) {
       const result = await response.json()
       
       if (result.user_id) {
-        const loginResponse = await fetch('http://localhost:5000/login', {
+        const loginResponse = await fetch(`${API_BASE}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',

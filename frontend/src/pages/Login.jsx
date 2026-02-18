@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { toastService } from '../utils/toastService'
 import './Auth.css'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -16,7 +18,7 @@ export default function Login({ onLogin }) {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/login', {
+      const response = await fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
