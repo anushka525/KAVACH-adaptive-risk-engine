@@ -31,7 +31,7 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # Enable CORS for frontend communication
-    CORS(app, resources={r"/*": {"origins": "http://localhost:5173", "supports_credentials": True}})
+    CORS(app, resources={r"/*": {"origins": ["https://kavach-adaptive-risk-engine.netlify.app", "http://localhost:5173"], "supports_credentials": True}})
 
     db.init_app(app)
 
