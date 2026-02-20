@@ -147,6 +147,10 @@ venv\Scripts\activate        # Windows
 pip install -r requirements.txt
 ```
 ### 4️⃣ Run the application
+- backend:
+```bash
+python app.py
+```
 - if running locally frontend:
 ```bash
 cd frontend
