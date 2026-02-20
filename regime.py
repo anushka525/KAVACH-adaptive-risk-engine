@@ -26,8 +26,12 @@ COINGECKO_MAP = {"BTC-USD": "bitcoin", "ETH-USD": "ethereum"}
 
 # Retry configuration
 MAX_RETRIES = 3
-RETRY_DELAY = 1.0  # seconds
-RETRY_BACKOFF = 1.5  # exponential backoff multiplier
+RETRY_DELAY = 0.5  # seconds
+RETRY_BACKOFF = 2.0  # exponential backoff multiplier
+REQUEST_TIMEOUT = 25  # increased from default 10 for slow networks
+
+# Simple caching to reduce API calls (cache for 60 seconds)
+_regime_cache = {"data": None, "timestamp": None, "ttl": 60}
 
 
 def _retry_request(func, ticker, *args, **kwargs):
@@ -46,6 +50,27 @@ def _retry_request(func, ticker, *args, **kwargs):
             else:
                 logger.debug(f"All retries exhausted for {ticker}: {str(exc)}")
     return None
+
+
+def _get_cached_regime():
+    """Retrieve cached regime if still valid (within TTL)."""
+    if _regime_cache["data"] is None or _regime_cache["timestamp"] is None:
+        return None
+    
+    elapsed = time.time() - _regime_cache["timestamp"]
+    if elapsed < _regime_cache["ttl"]:
+        logger.debug(f"Using cached regime (age: {elapsed:.1f}s)")
+        return _regime_cache["data"]
+    
+    logger.debug(f"Cache expired (age: {elapsed:.1f}s > ttl: {_regime_cache['ttl']}s)")
+    return None
+
+
+def _set_cached_regime(data):
+    """Store regime data in cache with current timestamp."""
+    _regime_cache["data"] = data
+    _regime_cache["timestamp"] = time.time()
+    logger.debug("Regime cached for next 60 seconds")
 
 
 def _history_yfinance(ticker, period="220d"):
@@ -70,7 +95,7 @@ def _history_stooq(ticker):
     try:
         stooq_symbol = STOOQ_MAP.get(ticker, ticker)
         url = f"https://stooq.com/q/l/?s={stooq_symbol}&f=sd2t2ohlcv&h&e=csv"
-        response = requests.get(url, timeout=10)  # Increased timeout
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
 
         if not response.text or len(response.text.strip()) == 0:
@@ -110,7 +135,7 @@ def _history_coingecko(ticker, days=220):
             "https://api.coingecko.com/api/v3/coins/"
             f"{coin_id}/market_chart?vs_currency=usd&days={days}"
         )
-        response = requests.get(url, timeout=10)  # Increased timeout
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
 
         data = response.json()
@@ -202,7 +227,20 @@ def _rolling_vol_zscore(returns):
     return current_vol, mean_vol, float(z_score)
 
 
-def detect_regime(risky_ticker=RISKY_TICKER, safe_ticker=SAFE_TICKER):
+def clear_regime_cache():
+    """Clear the regime cache. Used when stress testing."""
+    _regime_cache["data"] = None
+    _regime_cache["timestamp"] = None
+    logger.debug("Regime cache cleared")
+
+
+def detect_regime(risky_ticker=RISKY_TICKER, safe_ticker=SAFE_TICKER, bypass_cache=False):
+    # Check cache first to reduce API calls (unless bypassed)
+    if not bypass_cache:
+        cached_result = _get_cached_regime()
+        if cached_result is not None:
+            return cached_result
+    
     errors = {}
     detected_by = "z_score"
 
@@ -215,12 +253,24 @@ def detect_regime(risky_ticker=RISKY_TICKER, safe_ticker=SAFE_TICKER):
         errors[safe_ticker] = err
 
     if risky_series is None:
+        logger.error(f"Failed to fetch risky asset data: {errors.get(risky_ticker, 'Unknown error')}")
+        logger.warning("Using fallback regime detection with default metrics")
+        # Return fallback with reasonable default metrics instead of empty metrics
+        fallback_metrics = {
+            "price": None,
+            "current_vol": 0.03,  # Assume 3% daily volatility as default
+            "mean_vol": 0.025,    # Assume 2.5% mean volatility
+            "z_score": 0.0,       # Neutral volatility z-score
+            "ma200": None,
+            "risky_7d": None,
+            "safe_7d": None,
+        }
         return {
             "timestamp": datetime.utcnow().isoformat(),
             "level": 1,
             "regime": "bull",
-            "reasoning": ["Insufficient risky asset history"],
-            "metrics": {},
+            "reasoning": ["Data unavailable - using fallback metrics", f"Error: {errors.get(risky_ticker, 'All providers failed')}"],
+            "metrics": fallback_metrics,
             "errors": errors,
             "detected_by": "fallback",
         }
@@ -288,4 +338,6 @@ def detect_regime(risky_ticker=RISKY_TICKER, safe_ticker=SAFE_TICKER):
     if errors:
         response["errors"] = errors
 
+    # Cache the result before returning
+    _set_cached_regime(response)
     return response

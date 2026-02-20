@@ -11,7 +11,7 @@ from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from market_data import fetch_latest_prices, parse_tickers
-from regime import detect_regime
+from regime import detect_regime, clear_regime_cache
 from rebalancer import deploy_capital, rebalance_portfolio
 from models import Asset, KavachLog, MarketState, User, db
 
@@ -178,6 +178,9 @@ def create_app():
         
         # Get the most recent log entry for details
         latest_log = KavachLog.query.filter_by(user_id=current_user.id).order_by(KavachLog.timestamp.desc()).first()
+        
+        # Clear regime cache so next /regime call fetches fresh data instead of reverting to cached real regime
+        clear_regime_cache()
         
         return jsonify({
             "status": "stress test executed",

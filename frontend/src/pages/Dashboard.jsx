@@ -130,7 +130,19 @@ export default function Dashboard({ onLogout }) {
         if (result.rebalance_details) {
           setLastRebalance(result.rebalance_details)
         }
-        await fetchRegime()
+        // Create a synthetic regime response from stress test result to show crash scenario
+        const stressRegimeResult = {
+          regime: 'crash',
+          level: 3,
+          detected_by: 'stress-test',
+          metrics: {
+            z_score: 3.5,
+            current_vol: 0.08,
+            mean_vol: 0.025
+          },
+          reasoning: ['Stress test simulation - Market crash scenario']
+        }
+        setRegime(stressRegimeResult)
         toastService.update(toastId, {
           render: '✅ Stress test complete!\n🛡️ Portfolio moved to 100% cash (Level 3)',
           type: 'success',

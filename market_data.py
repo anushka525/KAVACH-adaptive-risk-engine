@@ -16,8 +16,9 @@ COINGECKO_MAP = {"BTC-USD": "bitcoin", "ETH-USD": "ethereum"}
 
 # Retry configuration
 MAX_RETRIES = 3
-RETRY_DELAY = 1.0  # seconds
-RETRY_BACKOFF = 1.5  # exponential backoff multiplier
+RETRY_DELAY = 0.5  # seconds
+RETRY_BACKOFF = 2.0  # exponential backoff multiplier
+REQUEST_TIMEOUT = 25  # increased timeout for slow networks
 
 
 def _retry_request(func, ticker, *args, **kwargs):
@@ -71,7 +72,7 @@ def _fetch_stooq(ticker):
         stooq_symbol = STOOQ_MAP.get(ticker, ticker)
         url = f"https://stooq.com/q/l/?s={stooq_symbol}&f=sd2t2ohlcv&h&e=csv"
         
-        response = requests.get(url, timeout=10)  # Increased timeout
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         
         if not response.text or len(response.text.strip()) == 0:
@@ -103,7 +104,7 @@ def _fetch_coingecko(ticker):
         
         url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd"
         
-        response = requests.get(url, timeout=10)  # Increased timeout
+        response = requests.get(url, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
         
         data = response.json()
